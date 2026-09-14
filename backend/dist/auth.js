@@ -28,3 +28,12 @@ export function authMiddleware(req, res, next) {
         res.status(401).json({ error: 'Invalid token' });
     }
 }
+export function adminMiddleware(req, res, next) {
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    const userEmail = req.user?.email.trim().toLowerCase();
+    if (!adminEmail || !userEmail || userEmail !== adminEmail) {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+    }
+    next();
+}
