@@ -1,5 +1,4 @@
 import { createRequire } from 'node:module';
-import { db } from './db.js';
 const require = createRequire(import.meta.url);
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -10,21 +9,8 @@ export async function hashPassword(password) {
 export async function verifyPassword(password, hash) {
     return bcrypt.compare(password, hash);
 }
-export function generateToken(userId, email, isAdmin = false) {
-    return jwt.sign({ userId, email, isAdmin }, JWT_SECRET, { expiresIn: '7d' });
-}
-export function adminMiddleware(req, res, next) {
-    const userId = req.user?.userId;
-    if (!userId) {
-        res.status(401).json({ error: 'Unauthorized' });
-        return;
-    }
-    const user = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(userId);
-    if (!user || user.is_admin !== 1) {
-        res.status(403).json({ error: 'Admin access required' });
-        return;
-    }
-    next();
+export function generateToken(userId, email) {
+    return jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '7d' });
 }
 export function authMiddleware(req, res, next) {
     const authHeader = req.headers.authorization;

@@ -33,12 +33,8 @@ router.post('/register', async (req, res) => {
         db.prepare(`INSERT INTO profiles (user_id, display_name, physique, intelligence, 
        spirituality, sociality, success, ego, onboarded) 
        VALUES (?, ?, 0, 0, 0, 0, 0, 0, 0)`).run(userId, displayName);
-        const isAdmin = Boolean(process.env.ADMIN_EMAIL?.trim().toLowerCase() === email.toLowerCase());
-        if (isAdmin) {
-            db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(userId);
-        }
-        const token = generateToken(userId, email, isAdmin);
-        res.json({ token, userId, email, isAdmin });
+        const token = generateToken(userId, email);
+        res.json({ token, userId, email });
     }
     catch (error) {
         if (error instanceof z.ZodError) {
@@ -54,7 +50,7 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = loginSchema.parse(req.body);
         const user = db
-            .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE email = ?')
+            .prepare('SELECT id, email, password_hash FROM users WHERE email = ?')
             .get(email);
         if (!user) {
             res.status(401).json({ error: 'Invalid credentials' });
@@ -65,9 +61,8 @@ router.post('/login', async (req, res) => {
             res.status(401).json({ error: 'Invalid credentials' });
             return;
         }
-        const isAdmin = user.is_admin === 1;
-        const token = generateToken(user.id, user.email, isAdmin);
-        res.json({ token, userId: user.id, email: user.email, isAdmin });
+        const token = generateToken(user.id, user.email);
+        res.json({ token, userId: user.id, email: user.email });
     }
     catch (error) {
         if (error instanceof z.ZodError) {
