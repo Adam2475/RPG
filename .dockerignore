@@ -1,0 +1,7 @@
+**/node_modules
+**/dist
+**/.angular
+backend/.env
+backend/life_rpg.db
+.git
+.gitignore
