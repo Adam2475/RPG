@@ -1,6 +1,5 @@
 import { createRequire } from 'node:module';
 import { Request, Response, NextFunction } from 'express';
-import { db } from './db.js';
 
 const require = createRequire(import.meta.url);
 const bcrypt: typeof import('bcrypt') = require('bcrypt');
@@ -11,7 +10,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 export interface AuthPayload {
   userId: number;
   email: string;
-  isAdmin?: boolean;
 }
 
 export interface AuthRequest extends Request {
@@ -29,31 +27,8 @@ export async function verifyPassword(
   return bcrypt.compare(password, hash);
 }
 
-export function generateToken(userId: number, email: string, isAdmin = false): string {
-  return jwt.sign({ userId, email, isAdmin }, JWT_SECRET, { expiresIn: '7d' });
-}
-
-export function adminMiddleware(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) {
-  const userId = req.user?.userId;
-  if (!userId) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
-
-  const user = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(userId) as
-    | { is_admin: number }
-    | undefined;
-
-  if (!user || user.is_admin !== 1) {
-    res.status(403).json({ error: 'Admin access required' });
-    return;
-  }
-
-  next();
+export function generateToken(userId: number, email: string): string {
+  return jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '7d' });
 }
 
 export function authMiddleware(

@@ -16,7 +16,6 @@ import { StatsHexagon3dComponent } from '../../shared/stats-hexagon-3d.component
           <h1>{{ profileService.profile()?.displayName || 'Character' }}</h1>
           <div class="header-actions">
             <button class="nav-btn" (click)="goTasks()">Tasks</button>
-            <button *ngIf="authService.isAdmin()" class="nav-btn" (click)="goAdmin()">Admin</button>
             <button class="logout-btn" (click)="onLogout()">Logout</button>
           </div>
         </div>
@@ -461,7 +460,7 @@ import { StatsHexagon3dComponent } from '../../shared/stats-hexagon-3d.component
 })
 export class ProfileComponent implements OnInit {
   profileService = inject(ProfileService);
-  public authService = inject(AuthService);
+  private authService = inject(AuthService);
   private router = inject(Router);
 
   errorMessage = '';
@@ -591,10 +590,6 @@ export class ProfileComponent implements OnInit {
 
   goTasks() {
     this.router.navigate(['/tasks']);
-  }
-
-  goAdmin() {
-    this.router.navigate(['/admin']);
   }
 
   scrollToStats() {

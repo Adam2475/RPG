@@ -51,12 +51,8 @@ router.post('/register', async (req: AuthRequest, res: Response) => {
        VALUES (?, ?, 0, 0, 0, 0, 0, 0, 0)`
     ).run(userId, displayName);
 
-    const isAdmin = Boolean(process.env.ADMIN_EMAIL?.trim().toLowerCase() === email.toLowerCase());
-    if (isAdmin) {
-      db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(userId);
-    }
-    const token = generateToken(userId, email, isAdmin);
-    res.json({ token, userId, email, isAdmin });
+    const token = generateToken(userId, email);
+    res.json({ token, userId, email });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: error.errors });
@@ -72,7 +68,7 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
     const { email, password } = loginSchema.parse(req.body);
 
     const user = db
-      .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE email = ?')
+      .prepare('SELECT id, email, password_hash FROM users WHERE email = ?')
       .get(email) as any;
 
     if (!user) {
@@ -86,9 +82,8 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const isAdmin = user.is_admin === 1;
-    const token = generateToken(user.id, user.email, isAdmin);
-    res.json({ token, userId: user.id, email: user.email, isAdmin });
+    const token = generateToken(user.id, user.email);
+    res.json({ token, userId: user.id, email: user.email });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: error.errors });

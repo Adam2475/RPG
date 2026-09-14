@@ -5,7 +5,6 @@ import { initializeDatabase } from './db.js';
 import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import tasksRoutes from './routes/tasks.js';
-import adminRoutes from './routes/admin.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,7 +20,6 @@ initializeDatabase();
 app.use('/api/auth', authRoutes);
 app.use('/api', profileRoutes);
 app.use('/api/tasks', tasksRoutes);
-app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
