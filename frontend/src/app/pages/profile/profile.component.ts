@@ -63,11 +63,32 @@ import { StatsHexagon3dComponent } from '../../shared/stats-hexagon-3d.component
         </button>
 
         <div #statsSection class="secondary-stats" *ngIf="profileService.profile() as profile">
-          <h2 class="secondary-title">Secondary Stats</h2>
-          <div class="stat-group" *ngFor="let group of secondaryGroups(profile)">
-            <div class="group-header">
-              <span class="group-name">{{ group.primary }}</span>
-              <span class="group-value">{{ group.value }}</span>
+          <h2 class="secondary-title">Explore Your Stats</h2>
+          <div class="stat-hexagon-grid" aria-label="Primary stat categories">
+            <button
+              *ngFor="let group of secondaryGroups(profile)"
+              type="button"
+              class="stat-hexagon"
+              [class.selected]="expandedGroup === group.primary"
+              [attr.aria-expanded]="expandedGroup === group.primary"
+              [attr.aria-controls]="'secondary-' + group.primary.toLowerCase()"
+              (click)="toggleSecondaryGroup(group.primary)"
+            >
+              <span class="hexagon-name">{{ group.primary }}</span>
+              <span class="hexagon-value">{{ group.value }}</span>
+              <span class="hexagon-hint">{{ expandedGroup === group.primary ? 'CLOSE' : 'EXPLORE' }}</span>
+            </button>
+          </div>
+
+          <section
+            *ngIf="expandedGroup && getSecondaryGroup(profile, expandedGroup) as group"
+            class="secondary-dropdown"
+            [id]="'secondary-' + group.primary.toLowerCase()"
+            [attr.aria-label]="group.primary + ' secondary stats'"
+          >
+            <div class="dropdown-heading">
+              <h3>{{ group.primary }} Secondary Stats</h3>
+              <span>{{ group.value }} / 100</span>
             </div>
             <ul class="secondary-list">
               <li class="secondary-item" *ngFor="let stat of group.subs">
@@ -80,7 +101,7 @@ import { StatsHexagon3dComponent } from '../../shared/stats-hexagon-3d.component
                 </div>
               </li>
             </ul>
-          </div>
+          </section>
         </div>
 
         <div class="loading" *ngIf="!profileService.profile()">
@@ -338,7 +359,7 @@ import { StatsHexagon3dComponent } from '../../shared/stats-hexagon-3d.component
 
     .secondary-stats {
       width: 100%;
-      max-width: 600px;
+      max-width: 900px;
     }
 
     .secondary-title {
@@ -347,8 +368,116 @@ import { StatsHexagon3dComponent } from '../../shared/stats-hexagon-3d.component
       font-size: 18px;
       text-transform: uppercase;
       letter-spacing: 2px;
-      margin: 0 0 20px 0;
+      text-align: center;
+      margin: 0 0 24px 0;
       text-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+    }
+
+    .stat-hexagon-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(110px, 1fr));
+      gap: 14px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .stat-hexagon {
+      aspect-ratio: 1.12;
+      min-width: 0;
+      padding: 20px 12px;
+      border: 1px solid rgba(0, 212, 255, 0.65);
+      clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+      background: linear-gradient(145deg, rgba(0, 212, 255, 0.16), rgba(15, 24, 55, 0.9));
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: background 0.2s ease, filter 0.2s ease, transform 0.2s ease;
+    }
+
+    .stat-hexagon:hover,
+    .stat-hexagon.selected {
+      background: linear-gradient(145deg, rgba(0, 212, 255, 0.4), rgba(24, 45, 83, 0.96));
+      filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.45));
+      transform: translateY(-2px);
+    }
+
+    .stat-hexagon:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 4px;
+    }
+
+    .hexagon-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(10px, 2vw, 14px);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .hexagon-value {
+      color: #00ffff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(20px, 4vw, 28px);
+      font-weight: 700;
+    }
+
+    .hexagon-hint {
+      color: #a9cce5;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+    }
+
+    .secondary-dropdown {
+      max-width: 680px;
+      margin: 24px auto 0;
+      padding: 22px;
+      border: 1px solid rgba(0, 212, 255, 0.35);
+      border-radius: 14px;
+      background: rgba(5, 12, 35, 0.82);
+      box-shadow: 0 0 24px rgba(0, 212, 255, 0.1);
+      animation: dropdown-in 0.2s ease-out;
+    }
+
+    .dropdown-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+    }
+
+    .dropdown-heading h3 {
+      margin: 0;
+      color: #00ffff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .dropdown-heading > span {
+      color: #00d4ff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    @keyframes dropdown-in {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (min-width: 560px) {
+      .stat-hexagon-grid { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+    }
+
+    @media (min-width: 900px) {
+      .stat-hexagon-grid { grid-template-columns: repeat(6, minmax(105px, 1fr)); }
     }
 
     .secondary-list {
@@ -360,53 +489,7 @@ import { StatsHexagon3dComponent } from '../../shared/stats-hexagon-3d.component
       gap: 18px;
     }
 
-    .stat-group {
-      margin-bottom: 28px;
-    }
-
-    .stat-group:last-child {
-      margin-bottom: 0;
-    }
-
-    .group-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      padding-bottom: 8px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid rgba(0, 212, 255, 0.3);
-    }
-
-    .group-name {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 16px;
-      color: #00ffff;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
-    }
-
-    .group-value {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 16px;
-      color: #00d4ff;
-    }
-
     .secondary-item {
-      position: relative;
-      padding-left: 22px;
-    }
-
-    .secondary-item::before {
-      content: '';
-      position: absolute;
-      left: 4px;
-      top: 7px;
-      width: 8px;
-      height: 8px;
-      background: #00d4ff;
-      border-radius: 50%;
-      box-shadow: 0 0 8px rgba(0, 212, 255, 0.8);
     }
 
     .secondary-info {
@@ -465,6 +548,7 @@ export class ProfileComponent implements OnInit {
   private router = inject(Router);
 
   errorMessage = '';
+  expandedGroup: string | null = null;
 
   @ViewChild('statsSection') statsSection?: ElementRef<HTMLElement>;
 
@@ -562,6 +646,14 @@ export class ProfileComponent implements OnInit {
         ]
       }
     ];
+  }
+
+  toggleSecondaryGroup(primary: string): void {
+    this.expandedGroup = this.expandedGroup === primary ? null : primary;
+  }
+
+  getSecondaryGroup(profile: any, primary: string) {
+    return this.secondaryGroups(profile).find(group => group.primary === primary);
   }
 
   globalLevel(profile: any) {
