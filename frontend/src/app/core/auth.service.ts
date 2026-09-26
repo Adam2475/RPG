@@ -40,7 +40,8 @@ export class AuthService {
       displayName
     }).pipe(
       tap(response => {
-        this.setToken(response.token);
+        this.setToken(response.token, response.isAdmin);
+        this.refreshAdminStatus().subscribe({ error: () => undefined });
       })
     );
   }
@@ -51,7 +52,8 @@ export class AuthService {
       password
     }).pipe(
       tap(response => {
-        this.setToken(response.token);
+        this.setToken(response.token, response.isAdmin);
+        this.refreshAdminStatus().subscribe({ error: () => undefined });
       })
     );
   }
@@ -64,15 +66,16 @@ export class AuthService {
 
   logout(): void {
     this.tokenSignal.set(null);
+    this.isAdminSignal.set(false);
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('auth_token');
     }
     this.router.navigate(['/login']);
   }
 
-  private setToken(token: string): void {
+  private setToken(token: string, isAdmin: boolean): void {
     this.tokenSignal.set(token);
-    this.isAdminSignal.set(this.readAdminClaim(token));
+    this.isAdminSignal.set(isAdmin);
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('auth_token', token);
     }
