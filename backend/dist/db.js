@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '..', 'life_rpg.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'life_rpg.db');
 export const db = new DatabaseSync(dbPath);
 // Enable foreign keys
 db.exec('PRAGMA foreign_keys = ON');
@@ -13,9 +13,21 @@ export function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      is_admin INTEGER NOT NULL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+    // Add the role column when upgrading an existing local database.
+    try {
+        db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+    }
+    catch {
+        // The column already exists.
+    }
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    if (adminEmail) {
+        db.prepare('UPDATE users SET is_admin = 1 WHERE lower(email) = ?').run(adminEmail);
+    }
     // Create profiles table
     db.exec(`
     CREATE TABLE IF NOT EXISTS profiles (

@@ -8,7 +8,8 @@ import tasksRoutes from './routes/tasks.js';
 import adminRoutes from './routes/admin.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
+const HOST = '0.0.0.0';
 
 // Middleware
 app.use(cors());
@@ -28,6 +29,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Life RPG backend running on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Life RPG backend listening on ${HOST}:${PORT}`);
 });

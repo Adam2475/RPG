@@ -6,6 +6,7 @@ import {
   verifyPassword,
   generateToken,
   AuthRequest,
+  authMiddleware,
 } from '../auth.js';
 
 const router = Router();
@@ -23,7 +24,8 @@ const loginSchema = z.object({
 
 router.post('/register', async (req: AuthRequest, res: Response) => {
   try {
-    const { email, password, displayName } = registerSchema.parse(req.body);
+    const { email: submittedEmail, password, displayName } = registerSchema.parse(req.body);
+    const email = submittedEmail.trim().toLowerCase();
 
     // Check if user exists
     const existingUser = db
@@ -69,10 +71,11 @@ router.post('/register', async (req: AuthRequest, res: Response) => {
 
 router.post('/login', async (req: AuthRequest, res: Response) => {
   try {
-    const { email, password } = loginSchema.parse(req.body);
+    const { email: submittedEmail, password } = loginSchema.parse(req.body);
+    const email = submittedEmail.trim().toLowerCase();
 
     const user = db
-      .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE email = ?')
+      .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE lower(email) = ?')
       .get(email) as any;
 
     if (!user) {
@@ -96,6 +99,21 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
       res.status(500).json({ error: 'Server error' });
     }
   }
+});
+
+router.get('/me', authMiddleware, (req: AuthRequest, res: Response) => {
+  const user = db
+    .prepare('SELECT id, email, is_admin FROM users WHERE id = ?')
+    .get(req.user!.userId) as
+    | { id: number; email: string; is_admin: number }
+    | undefined;
+
+  if (!user) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  res.json({ userId: user.id, email: user.email, isAdmin: user.is_admin === 1 });
 });
 
 export default router;

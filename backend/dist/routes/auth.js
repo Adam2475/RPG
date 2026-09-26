@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db.js';
-import { hashPassword, verifyPassword, generateToken, } from '../auth.js';
+import { hashPassword, verifyPassword, generateToken, authMiddleware, } from '../auth.js';
 const router = Router();
 const registerSchema = z.object({
     email: z.string().email(),
@@ -14,7 +14,8 @@ const loginSchema = z.object({
 });
 router.post('/register', async (req, res) => {
     try {
-        const { email, password, displayName } = registerSchema.parse(req.body);
+        const { email: submittedEmail, password, displayName } = registerSchema.parse(req.body);
+        const email = submittedEmail.trim().toLowerCase();
         // Check if user exists
         const existingUser = db
             .prepare('SELECT id FROM users WHERE email = ?')
@@ -33,8 +34,12 @@ router.post('/register', async (req, res) => {
         db.prepare(`INSERT INTO profiles (user_id, display_name, physique, intelligence, 
        spirituality, sociality, success, ego, onboarded) 
        VALUES (?, ?, 0, 0, 0, 0, 0, 0, 0)`).run(userId, displayName);
-        const token = generateToken(userId, email);
-        res.json({ token, userId, email });
+        const isAdmin = Boolean(process.env.ADMIN_EMAIL?.trim().toLowerCase() === email.toLowerCase());
+        if (isAdmin) {
+            db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(userId);
+        }
+        const token = generateToken(userId, email, isAdmin);
+        res.json({ token, userId, email, isAdmin });
     }
     catch (error) {
         if (error instanceof z.ZodError) {
@@ -48,9 +53,10 @@ router.post('/register', async (req, res) => {
 });
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = loginSchema.parse(req.body);
+        const { email: submittedEmail, password } = loginSchema.parse(req.body);
+        const email = submittedEmail.trim().toLowerCase();
         const user = db
-            .prepare('SELECT id, email, password_hash FROM users WHERE email = ?')
+            .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE lower(email) = ?')
             .get(email);
         if (!user) {
             res.status(401).json({ error: 'Invalid credentials' });
@@ -61,8 +67,9 @@ router.post('/login', async (req, res) => {
             res.status(401).json({ error: 'Invalid credentials' });
             return;
         }
-        const token = generateToken(user.id, user.email);
-        res.json({ token, userId: user.id, email: user.email });
+        const isAdmin = user.is_admin === 1;
+        const token = generateToken(user.id, user.email, isAdmin);
+        res.json({ token, userId: user.id, email: user.email, isAdmin });
     }
     catch (error) {
         if (error instanceof z.ZodError) {
@@ -72,5 +79,15 @@ router.post('/login', async (req, res) => {
             res.status(500).json({ error: 'Server error' });
         }
     }
+});
+router.get('/me', authMiddleware, (req, res) => {
+    const user = db
+        .prepare('SELECT id, email, is_admin FROM users WHERE id = ?')
+        .get(req.user.userId);
+    if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+    }
+    res.json({ userId: user.id, email: user.email, isAdmin: user.is_admin === 1 });
 });
 export default router;

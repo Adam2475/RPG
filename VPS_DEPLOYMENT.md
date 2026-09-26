@@ -83,7 +83,7 @@ openssl rand -base64 48
 
 Replace the placeholder value. Do not commit `.env` to Git.
 
-`ADMIN_EMAIL` is currently required by `docker-compose.yml`. The current backend does not use this value, but it must be present unless that Compose variable is removed.
+`ADMIN_EMAIL` is used by the backend to promote the matching account to admin on startup. Register that email through the app (or use an existing account with that email), then log in again after deployment/configuration changes.
 
 ## 5. Start the application
 

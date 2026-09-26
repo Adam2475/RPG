@@ -22,10 +22,11 @@ export class AuthService {
   private tokenSignal = signal<string | null>(
     typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null
   );
+  private isAdminSignal = signal(this.readAdminClaim(this.tokenSignal()));
   
   public isAuthenticated = computed(() => this.tokenSignal() !== null);
   public token = computed(() => this.tokenSignal());
-  public isAdmin = computed(() => this.readAdminClaim(this.tokenSignal()));
+  public isAdmin = computed(() => this.isAdminSignal());
 
   constructor(
     private http: HttpClient,
@@ -55,6 +56,12 @@ export class AuthService {
     );
   }
 
+  refreshAdminStatus(): Observable<{ userId: number; email: string; isAdmin: boolean }> {
+    return this.http.get<{ userId: number; email: string; isAdmin: boolean }>(`${API_URL}/auth/me`).pipe(
+      tap(user => this.isAdminSignal.set(user.isAdmin))
+    );
+  }
+
   logout(): void {
     this.tokenSignal.set(null);
     if (typeof localStorage !== 'undefined') {
@@ -65,6 +72,7 @@ export class AuthService {
 
   private setToken(token: string): void {
     this.tokenSignal.set(token);
+    this.isAdminSignal.set(this.readAdminClaim(token));
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('auth_token', token);
     }
@@ -76,7 +84,11 @@ export class AuthService {
     }
 
     try {
-      return JSON.parse(atob(token.split('.')[1])).isAdmin === true;
+      const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const paddedPayload = payload.padEnd(Math.ceil(payload.length / 4) * 4, '=');
+      const binaryPayload = atob(paddedPayload);
+      const bytes = Uint8Array.from(binaryPayload, character => character.charCodeAt(0));
+      return JSON.parse(new TextDecoder().decode(bytes)).isAdmin === true;
     } catch {
       return false;
     }
